@@ -6,6 +6,8 @@ import jpabook.jpashop.domain.OrderItem;
 import jpabook.jpashop.domain.OrderStatus;
 import jpabook.jpashop.repository.OrderRepository;
 import jpabook.jpashop.repository.OrderSearch;
+import jpabook.jpashop.repository.order.query.OrderFlatDto;
+import jpabook.jpashop.repository.order.query.OrderItemQueryDto;
 import jpabook.jpashop.repository.order.query.OrderQueryDto;
 import jpabook.jpashop.repository.order.query.OrderQueryRepository;
 import lombok.AllArgsConstructor;
@@ -121,7 +123,24 @@ public class OrderApiController {
        return orderQueryRepository.findOrderQueryDtos();
     }
 
+    @GetMapping("/api/v5/orders")
+    public List<OrderQueryDto> orderV5(){
+        return orderQueryRepository.findAllByDto_optimiztion();
+    }
 
+    @GetMapping("/api/v6/orders")
+    public List<OrderQueryDto> orderV6(){
+        List<OrderFlatDto> flats = orderQueryRepository.findAllByDto_flat();
+
+           return flats.stream().collect(Collectors.groupingBy(orderFlatDto ->new OrderQueryDto(
+                    orderFlatDto.getOrderId(), orderFlatDto.getName(),orderFlatDto.getOrderDate(),orderFlatDto.getOrderStatus(), orderFlatDto.getAddress())
+                    , Collectors.mapping(orderFlatDto -> new OrderItemQueryDto(
+                            orderFlatDto.getOrderId(), orderFlatDto.getItemName(), orderFlatDto.getOrderPrice(), orderFlatDto.getCount()), Collectors.toList())
+            )).entrySet().stream()
+                    .map(e -> new OrderQueryDto(
+                            e.getKey().getOrderId(), e.getKey().getName(), e.getKey().getOrderDate(), e.getKey().getOrderStatus(), e.getKey().getAddress(), e.getValue())
+                    ).collect(Collectors.toList());
+    }
 
 
     @Data
